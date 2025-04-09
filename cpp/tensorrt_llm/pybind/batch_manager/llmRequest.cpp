@@ -122,6 +122,7 @@ std::shared_ptr<tb::LlmRequest> LlmRequest::toTrtLlm() const
         mGuidedDecodingParams,                                     //
         mLanguageAdapterUid,                                       //
         mAllottedTimeMs,                                           //
-        mContextPhaseParams                                        //
+        mContextPhaseParams,                                       //
+        mPromptLookupConfig                                        //
     );
 }

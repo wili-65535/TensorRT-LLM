@@ -15,6 +15,7 @@
  */
 #include "tllmRuntime.h"
 #include "common.h"
+#include "nlohmann/json.hpp"
 #include "tensorrt_llm/common/assert.h"
 #include "tensorrt_llm/common/logger.h"
 #include "tensorrt_llm/common/nvtxUtils.h"
@@ -24,8 +25,6 @@
 #include "tensorrt_llm/runtime/utils/mpiUtils.h"
 #include "tllmLogger.h"
 #include "tllmStreamReaders.h"
-
-#include "nlohmann/json.hpp"
 #include <NvInferRuntime.h>
 
 #include <algorithm>

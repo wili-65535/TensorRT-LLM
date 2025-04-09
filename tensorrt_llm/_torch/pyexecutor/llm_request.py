@@ -350,6 +350,7 @@ def executor_request_to_llm_request(
         mrope_position_deltas=None if executor_request.mrope_config is None else
         executor_request.mrope_config.mrope_position_deltas,
         lookahead_config=None,
+        prompt_lookup_config=None,
         return_log_probs=executor_request.output_config.return_log_probs,
         return_context_logits=executor_request.output_config.
         return_context_logits,

@@ -323,6 +323,33 @@ void initRequestBindings(pybind11::module_& m)
         .def_static("get_default_lookahead_decoding_verification_set",
             []() { return tle::LookaheadDecodingConfig::kDefaultLookaheadDecodingVerificationSet; });
 
+    auto promptLookupConfigGetstate = [](tle::PromptLookupConfig const& self) {
+        return py::make_tuple(
+            self.getPromptLookupNumTokens(), self.getMaxMatchingNgramSize(), self.getCandidateSetSize());
+    };
+    auto promptLookupConfigSetstate = [](py::tuple const& state)
+    {
+        if (state.size() != 3)
+        {
+            throw std::runtime_error("Invalid PromptLookupConfig state!");
+        }
+        return tle::PromptLookupConfig(
+            state[0].cast<SizeType32>(), state[1].cast<SizeType32>(), state[2].cast<SizeType32>());
+    };
+    py::class_<tle::PromptLookupConfig>(m, "PromptLookupConfig")
+        .def(py::init<SizeType32, SizeType32, SizeType32>(), py::arg("prompt_lookup_num_tokens"),
+            py::arg("max_matching_ngram_size"), py::arg("candidate_set_size"))
+        .def_property_readonly("prompt_lookup_num_tokens", &tle::PromptLookupConfig::getPromptLookupNumTokens)
+        .def_property_readonly("max_matching_ngram_size", &tle::PromptLookupConfig::getMaxMatchingNgramSize)
+        .def_property_readonly("candidate_set_size", &tle::PromptLookupConfig::getCandidateSetSize)
+        .def(py::pickle(promptLookupConfigGetstate, promptLookupConfigSetstate))
+        .def_static("get_default_prompt_lookup_num_tokens",
+            []() { return tle::PromptLookupConfig::kDefaultPromptLookupNumTokens; })
+        .def_static("get_default_max_matching_ngram_size",
+            []() { return tle::PromptLookupConfig::kDefaultMaxMatchingNgramSize; })
+        .def_static(
+            "get_default_candidate_set_size", []() { return tle::PromptLookupConfig::kDefaultCandidateSetSize; });
+
     auto TokenRangeRetentionConfigGetstate = [](tle::KvCacheRetentionConfig::TokenRangeRetentionConfig const& self)
     { return py::make_tuple(self.tokenStart, self.tokenEnd, self.priority, self.durationMs); };
     auto TokenRangeRetentionConfigSetstate = [](py::tuple const& state)
@@ -500,35 +527,58 @@ void initRequestBindings(pybind11::module_& m)
         return py::make_tuple(self.getInputTokenIds(), self.getMaxTokens(), self.getStreaming(),
             self.getSamplingConfig(), self.getOutputConfig(), self.getEndId(), self.getPadId(), self.getPositionIds(),
             self.getBadWords(), self.getStopWords(), self.getEmbeddingBias(), self.getExternalDraftTokensConfig(),
-            self.getPromptTuningConfig(), self.getMultimodalEmbedding(), self.getMropeConfig(), self.getLoraConfig(),
-            self.getLookaheadConfig(), self.getKvCacheRetentionConfig(), self.getLogitsPostProcessorName(),
-            self.getLogitsPostProcessor(), self.getEncoderInputTokenIds(), self.getClientId(),
-            self.getReturnAllGeneratedTokens(), self.getPriority(), self.getRequestType(), self.getContextPhaseParams(),
-            self.getEncoderInputFeatures(), self.getEncoderOutputLength(), self.getCrossAttentionMask(),
-            self.getEagleConfig(), self.getSkipCrossAttnBlocks(), self.getGuidedDecodingParams());
+            self.getPromptTuningConfig(), self.getMropeConfig(), self.getLoraConfig(), self.getLookaheadConfig(),
+            self.getKvCacheRetentionConfig(), self.getLogitsPostProcessorName(), self.getLogitsPostProcessor(),
+            self.getEncoderInputTokenIds(), self.getClientId(), self.getReturnAllGeneratedTokens(), self.getPriority(),
+            self.getRequestType(), self.getContextPhaseParams(), self.getEncoderInputFeatures(),
+            self.getEncoderOutputLength(), self.getCrossAttentionMask(), 1, self.getEagleConfig(),
+            self.getSkipCrossAttnBlocks(), self.getGuidedDecodingParams(), self.getLanguageAdapterUid(),
+            self.getAllottedTimeMs(), self.getPromptLookupConfig());
     };
     auto requestSetstate = [](py::tuple const& state)
     {
-        if (state.size() != 32)
+        if (state.size() != 36)
         {
             throw std::runtime_error("Invalid Request state!");
         }
-        return std::make_unique<tle::Request>(state[0].cast<VecTokens>(), state[1].cast<SizeType32>(),
-            state[2].cast<bool>(), state[3].cast<tle::SamplingConfig>(), state[4].cast<tle::OutputConfig>(),
-            state[5].cast<std::optional<SizeType32>>(), state[6].cast<std::optional<SizeType32>>(),
-            state[7].cast<std::optional<std::vector<SizeType32>>>(),
-            state[8].cast<std::optional<std::list<VecTokens>>>(), state[9].cast<std::optional<std::list<VecTokens>>>(),
-            state[10].cast<std::optional<Tensor>>(), state[11].cast<std::optional<tle::ExternalDraftTokensConfig>>(),
-            state[12].cast<std::optional<tle::PromptTuningConfig>>(), state[13].cast<std::optional<Tensor>>(),
-            state[14].cast<std::optional<tle::MropeConfig>>(), state[15].cast<std::optional<tle::LoraConfig>>(),
-            state[16].cast<std::optional<tle::LookaheadDecodingConfig>>(),
-            state[17].cast<std::optional<tle::KvCacheRetentionConfig>>(), state[18].cast<std::optional<std::string>>(),
-            state[19].cast<std::optional<tle::LogitsPostProcessor>>(), state[20].cast<std::optional<VecTokens>>(),
-            state[21].cast<std::optional<IdType>>(), state[22].cast<bool>(), state[23].cast<tle::PriorityType>(),
-            state[24].cast<tle::RequestType>(), state[25].cast<std::optional<tle::ContextPhaseParams>>(),
-            state[26].cast<std::optional<tle::Tensor>>(), state[27].cast<std::optional<SizeType32>>(),
-            state[28].cast<std::optional<tle::Tensor>>(), 1, state[29].cast<std::optional<tle::EagleConfig>>(),
-            state[30].cast<std::optional<tle::Tensor>>(), state[31].cast<std::optional<tle::GuidedDecodingParams>>());
+        return std::make_unique<tle::Request>(                               //
+            state[0].cast<VecTokens>(),                                      // InputTokenIds
+            state[1].cast<SizeType32>(),                                     // MaxTokens
+            state[2].cast<bool>(),                                           // Streaming
+            state[3].cast<tle::SamplingConfig>(),                            // SamplingConfig
+            state[4].cast<tle::OutputConfig>(),                              // OutputConfig
+            state[5].cast<std::optional<SizeType32>>(),                      // EndId
+            state[6].cast<std::optional<SizeType32>>(),                      // PadId
+            state[7].cast<std::optional<std::vector<SizeType32>>>(),         // PositionIds
+            state[8].cast<std::optional<std::list<VecTokens>>>(),            // BadWords
+            state[9].cast<std::optional<std::list<VecTokens>>>(),            // StopWords
+            state[10].cast<std::optional<Tensor>>(),                         // EmbeddingBias
+            state[11].cast<std::optional<tle::ExternalDraftTokensConfig>>(), // ExternalDraftTokensConfig
+            state[12].cast<std::optional<tle::PromptTuningConfig>>(),        // PromptTuningConfig
+            state[13].cast<std::optional<Tensor>>(),                         // MultimodalEmbedding
+            state[14].cast<std::optional<tle::MropeConfig>>(),               // MropeConfig
+            state[15].cast<std::optional<tle::LoraConfig>>(),                // LoraConfig
+            state[16].cast<std::optional<tle::LookaheadDecodingConfig>>(),   // LookaheadConfig
+            state[17].cast<std::optional<tle::KvCacheRetentionConfig>>(),    // KvCacheRetentionConfig
+            state[18].cast<std::optional<std::string>>(),                    // LogitsPostProcessorName
+            state[19].cast<std::optional<tle::LogitsPostProcessor>>(),       // LogitsPostProcessor
+            state[20].cast<std::optional<VecTokens>>(),                      // EncoderInputTokenIds
+            state[21].cast<std::optional<IdType>>(),                         // ClientId
+            state[22].cast<bool>(),                                          // ReturnAllGeneratedTokens
+            state[23].cast<tle::PriorityType>(),                             // Priority
+            state[24].cast<tle::RequestType>(),                              // RequestType
+            state[25].cast<std::optional<tle::ContextPhaseParams>>(),        // ContextPhaseParams
+            state[26].cast<std::optional<tle::Tensor>>(),                    // EncoderInputFeatures
+            state[27].cast<std::optional<SizeType32>>(),                     // EncoderOutputLength
+            state[28].cast<std::optional<tle::Tensor>>(),                    // CrossAttentionMask
+            1,                                                               // num_return_sequences
+            state[30].cast<std::optional<tle::EagleConfig>>(),               // EagleConfig
+            state[31].cast<std::optional<tle::Tensor>>(),                    // SkipCrossAttnBlocks
+            state[32].cast<std::optional<tle::GuidedDecodingParams>>(),      // GuidedDecodingParams
+            state[33].cast<std::optional<SizeType32>>(),                     // LanguageAdapterUid
+            state[34].cast<std::optional<tle::MillisecondsType>>(),          // AllottedTimeMs
+            state[35].cast<std::optional<tle::PromptLookupConfig>>()         // PromptLookupConfig
+        );
     };
 
     py::class_<tle::Request> request(m, "Request", pybind11::dynamic_attr());
@@ -562,7 +612,9 @@ void initRequestBindings(pybind11::module_& m)
                      std::optional<tle::EagleConfig> const& eagleConfig,
                      std::optional<tle::Tensor> const& skipCrossAttnBlocks,
                      std::optional<tle::GuidedDecodingParams> const& guidedDecodingParams,
-                     std::optional<tle::SizeType32> const& languageAdapterUid)
+                     std::optional<tle::SizeType32> const& languageAdapterUid,
+                     std::optional<tle::MillisecondsType> allottedTimeMs,
+                     std::optional<tle::PromptLookupConfig> promptLookupConfig)
                  {
                      if (maxNewTokens.has_value())
                      {
@@ -579,7 +631,8 @@ void initRequestBindings(pybind11::module_& m)
                          lookaheadConfig, kvCacheRetentionConfig, logitsPostProcessorName, logitsPostProcessor,
                          encoderInputTokenIds, clientId, returnAllGeneratedTokens, priority, type, contextPhaseParams,
                          encoderInputFeatures, encoderOutputLength, crossAttentionMask, 1, eagleConfig,
-                         skipCrossAttnBlocks, guidedDecodingParams, languageAdapterUid);
+                         skipCrossAttnBlocks, guidedDecodingParams, languageAdapterUid, allottedTimeMs,
+                         promptLookupConfig);
                  }),
             py::arg("input_token_ids"), py::kw_only(), py::arg("max_tokens") = py::none(),
             py::arg("max_new_tokens") = py::none(), py::arg("streaming") = false,
@@ -599,7 +652,8 @@ void initRequestBindings(pybind11::module_& m)
             py::arg("context_phase_params") = py::none(), py::arg("encoder_input_features") = py::none(),
             py::arg("encoder_output_length") = py::none(), py::arg("cross_attention_mask") = py::none(),
             py::arg("eagle_config") = py::none(), py::arg("skip_cross_attn_blocks") = py::none(),
-            py::arg("guided_decoding_params") = py::none(), py::arg("language_adapter_uid") = py::none())
+            py::arg("guided_decoding_params") = py::none(), py::arg("language_adapter_uid") = py::none(),
+            py::arg("allotted_time_ms") = py::none(), py::arg("prompt_lookup_config") = py::none())
         .def_property_readonly("input_token_ids", &tle::Request::getInputTokenIds)
         .def_property_readonly("max_tokens", &tle::Request::getMaxTokens)
         .def_property_readonly("max_new_tokens", &tle::Request::getMaxNewTokens)
@@ -642,9 +696,13 @@ void initRequestBindings(pybind11::module_& m)
             "skip_cross_attn_blocks", &tle::Request::getSkipCrossAttnBlocks, &tle::Request::setSkipCrossAttnBlocks)
         .def_property(
             "guided_decoding_params", &tle::Request::getGuidedDecodingParams, &tle::Request::setGuidedDecodingParams)
+        .def_property(
+            "language_adapter_uid", &tle::Request::getLanguageAdapterUid, &tle::Request::setLanguageAdapterUid)
         .def_property("allotted_time_ms", &tle::Request::getAllottedTimeMs, &tle::Request::setAllottedTimeMs)
         .def_property(
             "context_phase_params", &tle::Request::getContextPhaseParams, &tle::Request::setContextPhaseParams)
+        .def_property(
+            "prompt_lookup_config", &tle::Request::getPromptLookupConfig, &tle::Request::setPromptLookupConfig)
         .def(py::pickle(requestGetstate, requestSetstate));
     request.attr("BATCHED_POST_PROCESSOR_NAME") = tle::Request::kBatchedPostProcessorName;
 

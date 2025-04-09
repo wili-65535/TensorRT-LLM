@@ -32,6 +32,7 @@ from ..bindings.executor import KvCacheConfig as _KvCacheConfig
 from ..bindings.executor import \
     LookaheadDecodingConfig as _LookaheadDecodingConfig
 from ..bindings.executor import PeftCacheConfig as _PeftCacheConfig
+from ..bindings.executor import PromptLookupConfig
 from ..bindings.executor import SchedulerConfig as _SchedulerConfig
 # yapf: enable
 from ..builder import BuildConfig, EngineConfig
@@ -194,7 +195,8 @@ class DecodingBaseConfig(BaseModel):
             "MTP": MTPDecodingConfig,
             "Medusa": MedusaDecodingConfig,
             "Eagle": EagleDecodingConfig,
-            "Lookahead": LookaheadDecodingConfig
+            "Lookahead": LookaheadDecodingConfig,
+            "PromptLookup": PromptLookupConfig,
         }
 
         config_class = config_classes.get(decoding_type)
@@ -233,6 +235,18 @@ class EagleDecodingConfig(DecodingBaseConfig):
         return cls(**data)
 
     decoding_type: ClassVar[str] = "Eagle"
+
+
+class PromptLookupConfig(DecodingBaseConfig):
+    prompt_lookup_num_tokens: Optional[int] = None
+    max_matching_ngram_size: Optional[int] = None
+    candidate_set_size: Optional[int] = None
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(**data)
+
+    decoding_type: ClassVar[str] = "PromptLookup"
 
 
 class MTPDecodingConfig(DecodingBaseConfig):
@@ -870,8 +884,9 @@ class LlmArgs(BaseModel):
     # Speculative decoding parameters
     speculative_config: Optional[Union[
         LookaheadDecodingConfig, MedusaDecodingConfig, EagleDecodingConfig,
-        MTPDecodingConfig]] = Field(default=None,
-                                    description="Speculative decoding config.")
+        MTPDecodingConfig,
+        PromptLookupConfig]] = Field(default=None,
+                                     description="Speculative decoding config.")
 
     batching_type: Optional[BatchingType] = Field(default=None,
                                                   description="Batching type.")
@@ -1196,6 +1211,22 @@ class LlmArgs(BaseModel):
                         max_draft_tokens=self.speculative_config.max_draft_len,
                         eagle_weights_path=self.speculative_config.
                         pytorch_eagle_weights_path)
+
+            elif isinstance(self.speculative_config, PromptLookupConfig):
+                self.build_config.speculative_decoding_mode = SpeculativeDecodingMode.PROMPT_LOOKUP
+                assert self.speculative_config.max_draft_len > 0
+                self.build_config.max_draft_len = self.speculative_config.max_draft_len
+                prompt_lookup_config = PromptLookupConfig(
+                    self.speculative_config.prompt_lookup_num_tokens,
+                    self.speculative_config.max_matching_ngram_size,
+                    self.speculative_config.candidate_set_size,
+                )
+                prompt_lookup_num_tokens: Optional[int] = None
+                max_matching_ngram_size: Optional[int] = None
+                candidate_set_size: Optional[int] = None
+                self.decoding_config = DecodingConfig(
+                    decoding_mode=DecodingMode.PromptLookup(),
+                    prompt_lookup_config=prompt_lookup_config)
 
             elif isinstance(self.speculative_config, MTPDecodingConfig):
                 from tensorrt_llm._torch.speculative import MTPConfig

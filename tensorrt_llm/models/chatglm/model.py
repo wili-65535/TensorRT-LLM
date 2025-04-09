@@ -123,6 +123,7 @@ class ChatGLMDecoderLayer(Module):
         attention_mask: Tensor = None,
         position_ids: Tensor = None,  # only used in ChatGLM-6B
         use_cache: bool = False,
+        spec_decoding_params=None,
         kv_cache_params: KeyValueCacheParams = None,
         attention_params: AttentionParams = None,
     ):
@@ -132,6 +133,7 @@ class ChatGLMDecoderLayer(Module):
             hidden_states=norm_output,
             attention_mask=attention_mask,
             use_cache=use_cache,
+            spec_decoding_params=spec_decoding_params,
             kv_cache_params=kv_cache_params,
             attention_params=attention_params,
             encoder_output=None,
@@ -209,6 +211,7 @@ class ChatGLMModel(Module):
         input_ids: Tensor = None,
         position_ids: Tensor = None,  # only used in ChatGLM-6B
         use_cache: bool = False,
+        spec_decoding_params=None,
         attention_mask: Tensor = None,
         kv_cache_params: KeyValueCacheParams = None,
         attention_params: AttentionParams = None,
@@ -243,6 +246,7 @@ class ChatGLMModel(Module):
 
         hidden_states = self.layers(hidden_states,
                                     use_cache=use_cache,
+                                    spec_decoding_params=spec_decoding_params,
                                     attention_mask=attention_mask,
                                     kv_cache_params=kv_cache_params,
                                     attention_params=attention_params,

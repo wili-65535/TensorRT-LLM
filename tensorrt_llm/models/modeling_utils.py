@@ -96,6 +96,7 @@ class SpeculativeDecodingMode(IntFlag):
     LOOKAHEAD_DECODING = auto()
     EXPLICIT_DRAFT_TOKENS = auto()
     EAGLE = auto()
+    PROMPT_LOOKUP = auto()
 
     @staticmethod
     def from_arguments(args: argparse.Namespace):
@@ -107,6 +108,8 @@ class SpeculativeDecodingMode(IntFlag):
             return SpeculativeDecodingMode.MEDUSA
         elif args.speculative_decoding_mode == "lookahead_decoding":
             return SpeculativeDecodingMode.LOOKAHEAD_DECODING
+        elif args.speculative_decoding_mode == "prompt_lookup":
+            return SpeculativeDecodingMode.PROMPT_LOOKUP
         elif args.speculative_decoding_mode == "explicit_draft_tokens":
             return SpeculativeDecodingMode.EXPLICIT_DRAFT_TOKENS
         elif args.speculative_decoding_mode == "eagle":
